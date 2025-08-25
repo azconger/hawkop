@@ -1,0 +1,8 @@
+{
+  "api_key": "your-stackhawk-api-key-here",
+  "org_id": "your-org-id-here",
+  "jwt": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "expires_at": "2024-12-25T15:30:45Z"
+  }
+}
