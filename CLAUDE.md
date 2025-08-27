@@ -8,8 +8,10 @@ HawkOp is a Go CLI companion utility for the StackHawk scanner and platform. It 
 
 The CLI follows GitHub's `gh` CLI design patterns and supports core StackHawk operations including:
 - Authentication and API key management (`init`, `status`)
-- Organization and resource management (`org list`, `app list`, `user list`, `team list`)  
-- Security policy management (`policy list`)
+- Organization and resource management (`org list`, `org set`, `org get`, `org clear`)
+- User management (`user list` with role filtering)
+- Team management (`team list`)
+- Application management (`app list` with status filtering)
 - Version information (`version`)
 
 ## Project Structure
@@ -22,10 +24,16 @@ The CLI follows GitHub's `gh` CLI design patterns and supports core StackHawk op
   - `status.go` - Configuration status command
   - `version.go` - Version information command
   - `org.go` - Organization management commands
+  - `user.go` - User listing and management commands
+  - `team.go` - Team listing and management commands
+  - `app.go` - Application listing and management commands
 - `internal/config/` - Configuration management
   - `config.go` - Config file handling, JWT management
 - `internal/api/` - StackHawk API client
   - `client.go` - HTTP client with automatic JWT refresh
+  - `types.go` - API response data structures
+- `internal/format/` - Output formatting utilities
+  - `table.go` - Table formatting for CLI output
 - `examples/` - Example configuration files
 - `HAWKOPDOC.md` - Comprehensive CLI documentation and command specifications
 
@@ -70,16 +78,28 @@ This is currently a minimal Go application with placeholder code that needs to b
 2. ✅ Configuration management (`~/.config/hawkop/config.json`)
 3. ✅ Credential storage with file permissions (600)
 4. ✅ JWT token management with expiration checking
-5. ✅ Commands: `init`, `status`, `version`, `org set/get/clear`
+5. ✅ Commands: `init`, `status`, `version`, `org set/get/clear/list`
 6. ✅ API client with automatic JWT refresh
 7. ✅ Secure API key input (hidden from terminal)
+8. ✅ Resource listing commands (`org list`, `user list`, `team list`, `app list`)
+9. ✅ Table/JSON output formatting with `format.NewTable()` utility
+10. ✅ Filtering support (role filtering for users, status filtering for apps)
+11. ✅ Limit/pagination support with `--limit` flag
+12. ✅ Organization-aware commands with `--org` flag override
+
+### API Endpoints Integrated
+- `GET /api/v1/user` - Get current user info and organizations
+- `GET /api/v1/org/{orgId}/members` - List organization members/users  
+- `GET /api/v1/org/{orgId}/teams` - List organization teams
+- `GET /api/v2/org/{orgId}/apps` - List organization applications
+- `GET /api/v1/auth/login` - JWT authentication with X-ApiKey header
 
 ### Next Implementation Steps
-1. Resource listing commands (`org list`, `app list`, `user list`, `team list`, `policy list`)
-2. API endpoints integration using StackHawk OpenAPI spec
-3. Table/JSON output formatting
-4. Error handling and user-friendly messages
-5. Additional configuration options
+1. Policy management commands (`policy list`)
+2. Scan management and execution commands
+3. Application detail views
+4. Enhanced filtering and search capabilities
+5. Configuration validation and health checks
 
 ### Configuration File Format
 The config file is stored at `~/.config/hawkop/config.json` with 600 permissions:
