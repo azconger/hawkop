@@ -1,10 +1,16 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
+	"hawkop/internal/api"
 	"hawkop/internal/config"
+	"hawkop/internal/format"
 )
 
 // orgCmd represents the org command
@@ -50,11 +56,31 @@ var orgClearCmd = &cobra.Command{
 	},
 }
 
+// orgListCmd lists all organizations the user belongs to
+var orgListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List organizations you belong to",
+	Long: `List all organizations that you have access to in StackHawk.
+	
+This command displays your organization memberships including organization ID, 
+name, plan, and other details.`,
+	Run: func(cmd *cobra.Command, args []string) {
+		format, _ := cmd.Flags().GetString("format")
+		limit, _ := cmd.Flags().GetInt("limit")
+		runOrgList(format, limit)
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(orgCmd)
 	orgCmd.AddCommand(orgSetCmd)
 	orgCmd.AddCommand(orgGetCmd)
 	orgCmd.AddCommand(orgClearCmd)
+	orgCmd.AddCommand(orgListCmd)
+
+	// Add flags for org list command
+	orgListCmd.Flags().StringP("format", "f", "table", "Output format (table|json)")
+	orgListCmd.Flags().IntP("limit", "l", 0, "Limit number of results (0 = no limit)")
 }
 
 func runOrgSet(orgID string) {
@@ -109,4 +135,79 @@ func runOrgClear() {
 	checkError(err)
 
 	fmt.Println("✅ Default organization ID cleared.")
+}
+
+func runOrgList(outputFormat string, limit int) {
+	// Load configuration
+	cfg, err := config.Load()
+	checkError(err)
+
+	// Validate that we have credentials
+	if !cfg.HasValidCredentials() {
+		fmt.Println("❌ No API key configured. Please run 'hawkop init' first.")
+		return
+	}
+
+	// Create API client
+	client := api.NewClient(cfg)
+
+	// Get organizations
+	orgs, err := client.ListOrganizations()
+	if err != nil {
+		fmt.Printf("❌ Failed to list organizations: %v\n", err)
+		return
+	}
+
+	// Apply limit if specified
+	if limit > 0 && len(orgs) > limit {
+		orgs = orgs[:limit]
+	}
+
+	// Output based on format
+	switch strings.ToLower(outputFormat) {
+	case "json":
+		outputJSON(orgs)
+	case "table":
+		outputTable(orgs)
+	default:
+		fmt.Printf("❌ Unknown format: %s. Use 'table' or 'json'\n", outputFormat)
+		return
+	}
+}
+
+func outputJSON(orgs []api.Organization) {
+	data, err := json.MarshalIndent(orgs, "", "  ")
+	if err != nil {
+		fmt.Printf("❌ Failed to format JSON: %v\n", err)
+		return
+	}
+	fmt.Println(string(data))
+}
+
+func outputTable(orgs []api.Organization) {
+	if len(orgs) == 0 {
+		fmt.Println("No organizations found.")
+		return
+	}
+
+	table := format.NewTable("ID", "NAME", "PLAN", "CREATED")
+	
+	for _, org := range orgs {
+		created := ""
+		if org.CreatedTimestamp != "" {
+			// Convert millisecond timestamp to readable date
+			if ts, err := strconv.ParseInt(org.CreatedTimestamp, 10, 64); err == nil {
+				created = time.Unix(ts/1000, 0).Format("2006-01-02")
+			}
+		}
+		
+		plan := org.Plan
+		if plan == "" {
+			plan = "N/A"
+		}
+
+		table.AddRow(org.ID, org.Name, plan, created)
+	}
+
+	fmt.Print(table.Render())
 }

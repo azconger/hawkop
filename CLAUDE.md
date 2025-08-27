@@ -64,7 +64,6 @@ This is currently a minimal Go application with placeholder code that needs to b
 - `github.com/spf13/cobra` - CLI framework for command structure
 - `golang.org/x/term` - Terminal utilities for secure password input
 - Standard library HTTP client for StackHawk API
-- StackHawk API OpenAPI Spec: https://download.stackhawk.com/openapi/stackhawk-openapi.json
 
 ### Implemented Features ✅
 1. ✅ Basic CLI structure with Cobra framework
@@ -94,3 +93,12 @@ The config file is stored at `~/.config/hawkop/config.json` with 600 permissions
   }
 }
 ```
+
+## Reference Materials
+
+### StackHawk Resources
+
+- StackHawk API OpenAPI Spec: https://download.stackhawk.com/openapi/stackhawk-openapi.json
+- StackHawk API Authentication Reference: https://apidocs.stackhawk.com/reference/login
+- StackHawk API Documentation: https://apidocs.stackhawk.com/
+- StackHawk Documentation: https://docs.stackhawk.com/

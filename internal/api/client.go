@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
@@ -12,7 +13,7 @@ import (
 
 const (
 	DefaultBaseURL = "https://api.stackhawk.com"
-	AuthEndpoint   = "/api/v1/auth"
+	AuthEndpoint   = "/api/v1/auth/login"
 )
 
 // Client represents the StackHawk API client
@@ -24,9 +25,9 @@ type Client struct {
 
 // AuthResponse represents the response from the authentication endpoint
 type AuthResponse struct {
-	AccessToken string    `json:"access_token"`
-	ExpiresAt   time.Time `json:"expires_at"`
-	TokenType   string    `json:"token_type"`
+	Token     string    `json:"token"`
+	ExpiresAt time.Time `json:"expires_at,omitempty"`
+	TokenType string    `json:"token_type,omitempty"`
 }
 
 // NewClient creates a new StackHawk API client
@@ -65,23 +66,14 @@ func (c *Client) EnsureValidJWT() error {
 func (c *Client) authenticate() error {
 	authURL := c.BaseURL + AuthEndpoint
 
-	// Prepare auth request body
-	authReq := map[string]string{
-		"api_key": c.config.APIKey,
-	}
-
-	reqBody, err := json.Marshal(authReq)
-	if err != nil {
-		return fmt.Errorf("failed to marshal auth request: %w", err)
-	}
-
-	// Create HTTP request
-	req, err := http.NewRequest("POST", authURL, bytes.NewBuffer(reqBody))
+	// Create HTTP GET request with API key in X-ApiKey header (as per curl example)
+	req, err := http.NewRequest("GET", authURL, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create auth request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-ApiKey", c.config.APIKey)
+	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "hawkop-cli")
 
 	// Make the request
@@ -93,7 +85,8 @@ func (c *Client) authenticate() error {
 
 	// Check for success status
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("authentication failed: HTTP %d", resp.StatusCode)
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("authentication failed: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
 	}
 
 	// Parse response
@@ -102,8 +95,14 @@ func (c *Client) authenticate() error {
 		return fmt.Errorf("failed to parse auth response: %w", err)
 	}
 
+	// If no expiration is provided, set it to 30 minutes from now (as mentioned in the docs)
+	expiresAt := authResp.ExpiresAt
+	if expiresAt.IsZero() {
+		expiresAt = time.Now().Add(30 * time.Minute)
+	}
+
 	// Update JWT in config
-	c.config.SetJWT(authResp.AccessToken, authResp.ExpiresAt)
+	c.config.SetJWT(authResp.Token, expiresAt)
 
 	// Save config with new JWT
 	if err := c.config.Save(); err != nil {
@@ -139,7 +138,7 @@ func (c *Client) DoAuthenticatedRequest(method, endpoint string, body interface{
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers
+	// Set headers with Bearer JWT token
 	req.Header.Set("Authorization", "Bearer "+c.config.JWT.Token)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "hawkop-cli")
@@ -189,4 +188,120 @@ func (c *Client) Put(endpoint string, body interface{}) (*http.Response, error) 
 // Delete performs a DELETE request with authentication
 func (c *Client) Delete(endpoint string) (*http.Response, error) {
 	return c.DoAuthenticatedRequest("DELETE", endpoint, nil)
+}
+
+// GetUser retrieves the current user information including organizations
+func (c *Client) GetUser() (*User, error) {
+	resp, err := c.Get("/api/v1/user")
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user info: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("API error: HTTP %d", resp.StatusCode)
+	}
+
+	var userResp UserResponse
+	if err := json.NewDecoder(resp.Body).Decode(&userResp); err != nil {
+		return nil, fmt.Errorf("failed to parse user response: %w", err)
+	}
+
+	return &userResp.User, nil
+}
+
+// ListOrganizations retrieves all organizations the user belongs to
+func (c *Client) ListOrganizations() ([]Organization, error) {
+	user, err := c.GetUser()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organizations: %w", err)
+	}
+
+	// Extract organizations from membership info
+	organizations := make([]Organization, 0, len(user.External.Organizations))
+	for _, membership := range user.External.Organizations {
+		organizations = append(organizations, membership.Organization)
+	}
+
+	return organizations, nil
+}
+
+// ListOrganizationMembers retrieves all users/members in the specified organization
+func (c *Client) ListOrganizationMembers(orgID string) ([]OrganizationMember, error) {
+	endpoint := fmt.Sprintf("/api/v1/org/%s/members", orgID)
+	
+	resp, err := c.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization members: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Parse the wrapped response (users are in a "users" array)
+	var wrappedResp OrganizationMembersResponse
+	if err := json.NewDecoder(resp.Body).Decode(&wrappedResp); err != nil {
+		return nil, fmt.Errorf("failed to parse organization members response: %w", err)
+	}
+	members := wrappedResp.Users
+	return members, nil
+}
+
+// ListOrganizationTeams retrieves all teams in the specified organization
+func (c *Client) ListOrganizationTeams(orgID string) ([]Team, error) {
+	endpoint := fmt.Sprintf("/api/v1/org/%s/teams", orgID)
+	
+	resp, err := c.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization teams: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Parse the response (teams are in a "teams" array)
+	var teamsResp OrganizationTeamsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&teamsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse organization teams response: %w", err)
+	}
+
+	return teamsResp.Teams, nil
+}
+
+// ListOrganizationApplications retrieves all applications in the specified organization
+func (c *Client) ListOrganizationApplications(orgID string) ([]AppApplication, error) {
+	endpoint := fmt.Sprintf("/api/v2/org/%s/apps", orgID)
+	
+	resp, err := c.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization applications: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Parse the response (applications are in an "applications" array)
+	var appsResp OrganizationApplicationsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&appsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse organization applications response: %w", err)
+	}
+
+	return appsResp.Applications, nil
+}
+
+// min returns the minimum of two integers
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
