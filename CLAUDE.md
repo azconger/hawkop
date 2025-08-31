@@ -12,6 +12,7 @@ The CLI follows GitHub's `gh` CLI design patterns and supports core StackHawk op
 - User management (`user list` with role filtering)
 - Team management (`team list`)
 - Application management (`app list` with status filtering)
+- **Scan management (`scan list`, `scan get`, `scan alerts`)**
 - Version information (`version`)
 
 ## Project Structure
@@ -27,6 +28,7 @@ The CLI follows GitHub's `gh` CLI design patterns and supports core StackHawk op
   - `user.go` - User listing and management commands
   - `team.go` - Team listing and management commands
   - `app.go` - Application listing and management commands
+  - `scan.go` - Scan listing and analysis commands
 - `internal/config/` - Configuration management
   - `config.go` - Config file handling, JWT management
 - `internal/api/` - StackHawk API client
@@ -55,13 +57,14 @@ The CLI follows GitHub's `gh` CLI design patterns and supports core StackHawk op
 
 ## Architecture Notes
 
-This is currently a minimal Go application with placeholder code that needs to be replaced with the actual CLI implementation. The planned architecture includes:
+HawkOp is now a fully functional CLI application with comprehensive StackHawk platform integration. The architecture includes:
 
 ### Command Structure
 - Root command with subcommands following `hawkop <command> <subcommand>` pattern
-- Commands: `init`, `version`, `status`, `org`, `app`, `user`, `team`, `policy`
-- Subcommands: `list` for resource commands
-- Consistent flag patterns: `--format`, `--org`, `--limit`, `--type`
+- **Implemented Commands**: `init`, `version`, `status`, `org`, `app`, `user`, `team`, `scan`
+- **Future Commands**: `policy`, `finding`, `report`
+- **Subcommands**: `list`, `get`, `set`, `clear`, `alerts`
+- **Consistent flag patterns**: `--format`, `--org`, `--limit`, `--app`, `--env`, `--status`, `--severity`
 
 ### Configuration Management  
 - API key storage in `~/.config/hawkop/` (encrypted)
@@ -74,32 +77,53 @@ This is currently a minimal Go application with placeholder code that needs to b
 - Standard library HTTP client for StackHawk API
 
 ### Implemented Features ✅
-1. ✅ Basic CLI structure with Cobra framework
-2. ✅ Configuration management (`~/.config/hawkop/config.json`)
-3. ✅ Credential storage with file permissions (600)
-4. ✅ JWT token management with expiration checking
-5. ✅ Commands: `init`, `status`, `version`, `org set/get/clear/list`
-6. ✅ API client with automatic JWT refresh
-7. ✅ Secure API key input (hidden from terminal)
-8. ✅ Resource listing commands (`org list`, `user list`, `team list`, `app list`)
-9. ✅ Table/JSON output formatting with `format.NewTable()` utility
-10. ✅ Filtering support (role filtering for users, status filtering for apps)
-11. ✅ Limit/pagination support with `--limit` flag
-12. ✅ Organization-aware commands with `--org` flag override
+1. ✅ **CLI Framework** - Complete Cobra-based CLI with hierarchical commands
+2. ✅ **Security & Auth** - Secure config storage, JWT management, API key protection
+3. ✅ **Configuration** - `~/.config/hawkop/config.json` with 600 permissions
+4. ✅ **Core Commands** - `init`, `status`, `version`, `org`, `user`, `team`, `app`, `scan`
+5. ✅ **Resource Management** - List and manage orgs, users, teams, applications
+6. ✅ **Scan Analysis** - List scans, view details, analyze security alerts
+7. ✅ **Smart Filtering** - App/env/status/role/severity filters across commands
+8. ✅ **Output Formats** - Professional table formatting + JSON for automation
+9. ✅ **Enterprise Ready** - Pagination, organization awareness, role-based access
+10. ✅ **Real Security Data** - Live integration showing actual vulnerability findings
+11. ✅ **Extensible Architecture** - Clean patterns for adding new commands and reports
+12. ✅ **Production Quality** - Error handling, validation, user-friendly messaging
 
 ### API Endpoints Integrated
+- `GET /api/v1/auth/login` - JWT authentication with X-ApiKey header
 - `GET /api/v1/user` - Get current user info and organizations
 - `GET /api/v1/org/{orgId}/members` - List organization members/users  
 - `GET /api/v1/org/{orgId}/teams` - List organization teams
 - `GET /api/v2/org/{orgId}/apps` - List organization applications
-- `GET /api/v1/auth/login` - JWT authentication with X-ApiKey header
+- `GET /api/v1/scan/{orgId}` - List organization scans with metadata
+- `GET /api/v1/scan/{scanId}/alerts` - Get security alerts for specific scan
 
-### Next Implementation Steps
-1. Policy management commands (`policy list`)
-2. Scan management and execution commands
-3. Application detail views
-4. Enhanced filtering and search capabilities
-5. Configuration validation and health checks
+### Future Enhancement Opportunities
+1. **Advanced Scan Features**
+   - `scan finding` - Individual finding details with request/response data
+   - `scan message` - Raw HTTP request/response analysis
+   - Scan filtering by date ranges and criticality
+
+2. **Enterprise Reporting** 
+   - `app summary` - Cross-application security posture dashboard
+   - `app report` - MTTR analysis, scan coverage, policy compliance
+   - Historical trending and ROI metrics
+
+3. **Application Deep Dive**
+   - `app get` - Application metadata, configuration, policy assignment
+   - `app scans` - Scan history and trends for specific applications
+   - Attack Surface repository mappings
+
+4. **Policy & Configuration Management**
+   - `policy list` - Available scan policies
+   - Policy assignment and configuration
+   - Environment and configuration management
+
+5. **Advanced Features**
+   - Export capabilities (CSV, PDF reports)
+   - Interactive mode for guided workflows
+   - Scan result comparison and diff analysis
 
 ### Configuration File Format
 The config file is stored at `~/.config/hawkop/config.json` with 600 permissions:
