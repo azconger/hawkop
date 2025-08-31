@@ -298,6 +298,60 @@ func (c *Client) ListOrganizationApplications(orgID string) ([]AppApplication, e
 	return appsResp.Applications, nil
 }
 
+// ListOrganizationScans retrieves all scans for the specified organization
+func (c *Client) ListOrganizationScans(orgID string) ([]ApplicationScanResult, error) {
+	endpoint := fmt.Sprintf("/api/v1/scan/%s", orgID)
+	
+	resp, err := c.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization scans: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Parse the response
+	var scansResp OrganizationScansResponse
+	if err := json.NewDecoder(resp.Body).Decode(&scansResp); err != nil {
+		return nil, fmt.Errorf("failed to parse organization scans response: %w", err)
+	}
+
+	return scansResp.ApplicationScanResults, nil
+}
+
+// GetScanAlerts retrieves alerts for a specific scan
+func (c *Client) GetScanAlerts(scanID string) ([]ScanAlert, error) {
+	endpoint := fmt.Sprintf("/api/v1/scan/%s/alerts", scanID)
+	
+	resp, err := c.Get(endpoint)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get scan alerts: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// Parse the response
+	var alertsResp ScanAlertsResponse
+	if err := json.NewDecoder(resp.Body).Decode(&alertsResp); err != nil {
+		return nil, fmt.Errorf("failed to parse scan alerts response: %w", err)
+	}
+
+	// Extract alerts from nested structure
+	var alerts []ScanAlert
+	for _, result := range alertsResp.ApplicationScanResults {
+		alerts = append(alerts, result.ApplicationAlerts...)
+	}
+
+	return alerts, nil
+}
+
 // min returns the minimum of two integers
 func min(a, b int) int {
 	if a < b {

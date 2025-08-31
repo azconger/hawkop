@@ -144,3 +144,98 @@ type OrganizationApplicationsResponse struct {
 	PrevPage        interface{}      `json:"prevPage,omitempty"`
 	PrevPageToken   string           `json:"prevPageToken,omitempty"`
 }
+
+// Scan represents a StackHawk scan
+type Scan struct {
+	ID              string `json:"id"`
+	ApplicationID   string `json:"applicationId"`
+	ApplicationName string `json:"applicationName"`
+	Env             string `json:"env,omitempty"`
+	Status          string `json:"status"`
+	Timestamp       string `json:"timestamp"`
+}
+
+// ApplicationScanResult represents a scan result with metadata
+type ApplicationScanResult struct {
+	Scan         Scan        `json:"scan"`
+	ScanDuration interface{} `json:"scanDuration,omitempty"`
+	URLCount     interface{} `json:"urlCount,omitempty"`
+	AlertStats   *AlertStats `json:"alertStats,omitempty"`
+	AppHost      string      `json:"appHost,omitempty"`
+	Timestamp    string      `json:"timestamp,omitempty"`
+	PolicyName   string      `json:"policyName,omitempty"`
+	Tags         []string    `json:"tags,omitempty"`
+	Metadata     interface{} `json:"metadata,omitempty"`
+}
+
+// AlertStats represents alert statistics for a scan
+type AlertStats struct {
+	High   int `json:"high,omitempty"`
+	Medium int `json:"medium,omitempty"`
+	Low    int `json:"low,omitempty"`
+	Info   int `json:"info,omitempty"`
+	Total  int `json:"total,omitempty"`
+}
+
+// OrganizationScansResponse represents the response from the /api/v1/scan/{orgId} endpoint
+type OrganizationScansResponse struct {
+	ApplicationScanResults []ApplicationScanResult `json:"applicationScanResults,omitempty"`
+	NextPageToken          string                  `json:"nextPageToken,omitempty"`
+	TotalCount             string                  `json:"totalCount,omitempty"`
+}
+
+// ScanAlert represents an alert/finding type in a scan
+type ScanAlert struct {
+	PluginID    string   `json:"pluginId"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Severity    string   `json:"severity"`
+	References  []string `json:"references,omitempty"`
+	URICount    int      `json:"uriCount,omitempty"`
+	CWEID       string   `json:"cweId,omitempty"`
+}
+
+// ScanAlertsResponse represents the response from the /api/v1/scan/{scanId}/alerts endpoint
+type ScanAlertsResponse struct {
+	ApplicationScanResults []struct {
+		ApplicationAlerts []ScanAlert `json:"applicationAlerts,omitempty"`
+	} `json:"applicationScanResults,omitempty"`
+	NextPageToken string `json:"nextPageToken,omitempty"`
+}
+
+// ScanAlertFinding represents a specific finding instance
+type ScanAlertFinding struct {
+	PluginID      string `json:"pluginId"`
+	URI           string `json:"uri"`
+	RequestMethod string `json:"requestMethod"`
+	Status        string `json:"status"`
+	MsgID         string `json:"msgId"`
+}
+
+// ScanAlertFindingsResponse represents the response from the /api/v1/scan/{scanId}/alert/{pluginId} endpoint
+type ScanAlertFindingsResponse struct {
+	Alert                    ScanAlert           `json:"alert,omitempty"`
+	Category                 string              `json:"category,omitempty"`
+	ApplicationScanAlertUris []ScanAlertFinding  `json:"applicationScanAlertUris,omitempty"`
+	AppHost                  string              `json:"appHost,omitempty"`
+	TotalCount               string              `json:"totalCount,omitempty"`
+	NextPageToken            string              `json:"nextPageToken,omitempty"`
+}
+
+// ScanMessage represents request/response data for a specific finding
+type ScanMessage struct {
+	ID             string `json:"id"`
+	RequestHeader  string `json:"requestHeader,omitempty"`
+	RequestBody    string `json:"requestBody,omitempty"`
+	ResponseHeader string `json:"responseHeader,omitempty"`
+	ResponseBody   string `json:"responseBody,omitempty"`
+}
+
+// ScanMessageResponse represents the response from the /api/v1/scan/{scanId}/uri/{alertUriId}/messages/{messageId} endpoint
+type ScanMessageResponse struct {
+	ScanMessage ScanMessage `json:"scanMessage,omitempty"`
+	URI         string      `json:"uri,omitempty"`
+	Evidence    string      `json:"evidence,omitempty"`
+	Description string      `json:"description,omitempty"`
+	Param       string      `json:"param,omitempty"`
+}
