@@ -1,6 +1,25 @@
 package api
 
-// No time import needed in this file
+// PaginationOptions represents pagination and sorting parameters
+type PaginationOptions struct {
+	PageSize   int    `json:"pageSize,omitempty"`
+	PageToken  string `json:"pageToken,omitempty"`
+	Page       string `json:"page,omitempty"`
+	SortField  string `json:"sortField,omitempty"`
+	SortDir    string `json:"sortDir,omitempty"`
+}
+
+// PaginationInfo represents pagination metadata in responses
+type PaginationInfo struct {
+	NextPageToken string      `json:"nextPageToken,omitempty"`
+	PrevPageToken string      `json:"prevPageToken,omitempty"`
+	TotalCount    string      `json:"totalCount,omitempty"`
+	HasNext       bool        `json:"hasNext,omitempty"`
+	HasPrev       bool        `json:"hasPrev,omitempty"`
+	CurrentPage   interface{} `json:"currentPage,omitempty"`
+	NextPage      interface{} `json:"nextPage,omitempty"`
+	PrevPage      interface{} `json:"prevPage,omitempty"`
+}
 
 // Organization represents a StackHawk organization
 type Organization struct {
@@ -164,7 +183,7 @@ type ApplicationScanResult struct {
 	AppHost      string      `json:"appHost,omitempty"`
 	Timestamp    string      `json:"timestamp,omitempty"`
 	PolicyName   string      `json:"policyName,omitempty"`
-	Tags         []string    `json:"tags,omitempty"`
+	Tags         interface{} `json:"tags,omitempty"`
 	Metadata     interface{} `json:"metadata,omitempty"`
 }
 

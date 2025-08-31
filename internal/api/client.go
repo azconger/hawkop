@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"hawkop/internal/config"
@@ -14,6 +16,14 @@ import (
 const (
 	DefaultBaseURL = "https://api.stackhawk.com"
 	AuthEndpoint   = "/api/v1/auth/login"
+	
+	// Pagination constants - use max page size to minimize API requests
+	DefaultPageSize = 1000  // Use maximum to reduce API calls
+	MaxPageSize     = 1000
+	
+	// Rate limiting constants
+	MaxRequestsPerMinute = 360
+	RetryAfterDefault    = 60 * time.Second
 )
 
 // Client represents the StackHawk API client
@@ -21,6 +31,7 @@ type Client struct {
 	BaseURL    string
 	HTTPClient *http.Client
 	config     *config.Config
+	lastRequest time.Time
 }
 
 // AuthResponse represents the response from the authentication endpoint
@@ -112,12 +123,20 @@ func (c *Client) authenticate() error {
 	return nil
 }
 
-// DoAuthenticatedRequest performs an HTTP request with automatic JWT handling
+// DoAuthenticatedRequest performs an HTTP request with automatic JWT handling, rate limiting, and retry logic
 func (c *Client) DoAuthenticatedRequest(method, endpoint string, body interface{}) (*http.Response, error) {
+	return c.DoAuthenticatedRequestWithParams(method, endpoint, body, nil)
+}
+
+// DoAuthenticatedRequestWithParams performs an HTTP request with pagination and query parameters
+func (c *Client) DoAuthenticatedRequestWithParams(method, endpoint string, body interface{}, params map[string]string) (*http.Response, error) {
 	// Ensure we have a valid JWT
 	if err := c.EnsureValidJWT(); err != nil {
 		return nil, err
 	}
+
+	// Rate limiting: ensure we don't exceed 360 requests per minute
+	c.respectRateLimit()
 
 	// Prepare request body
 	var reqBody *bytes.Buffer
@@ -131,9 +150,26 @@ func (c *Client) DoAuthenticatedRequest(method, endpoint string, body interface{
 		reqBody = &bytes.Buffer{}
 	}
 
+	// Build URL with query parameters
+	reqURL := c.BaseURL + endpoint
+	if params != nil && len(params) > 0 {
+		u, err := url.Parse(reqURL)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse URL: %w", err)
+		}
+		
+		q := u.Query()
+		for key, value := range params {
+			if value != "" {
+				q.Set(key, value)
+			}
+		}
+		u.RawQuery = q.Encode()
+		reqURL = u.String()
+	}
+
 	// Create request
-	url := c.BaseURL + endpoint
-	req, err := http.NewRequest(method, url, reqBody)
+	req, err := http.NewRequest(method, reqURL, reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -143,14 +179,44 @@ func (c *Client) DoAuthenticatedRequest(method, endpoint string, body interface{
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", "hawkop-cli")
 
-	// Make the request
+	// Make the request with retry logic
+	resp, err := c.makeRequestWithRetry(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update last request time for rate limiting
+	c.lastRequest = time.Now()
+
+	return resp, nil
+}
+
+// respectRateLimit implements basic rate limiting to stay under 360 requests/minute
+func (c *Client) respectRateLimit() {
+	// Simple rate limiting: ensure at least 167ms between requests (360/min = 6/sec)
+	minInterval := 167 * time.Millisecond
+	if !c.lastRequest.IsZero() {
+		elapsed := time.Since(c.lastRequest)
+		if elapsed < minInterval {
+			time.Sleep(minInterval - elapsed)
+		}
+	}
+}
+
+// makeRequestWithRetry executes an HTTP request with retry logic for rate limiting and auth errors
+func (c *Client) makeRequestWithRetry(req *http.Request) (*http.Response, error) {
+	// Make the initial request
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("request failed: %w", err)
 	}
 
-	// Check if we got an unauthorized response (token might have expired)
-	if resp.StatusCode == http.StatusUnauthorized {
+	// Handle different HTTP status codes
+	switch resp.StatusCode {
+	case http.StatusOK, http.StatusCreated, http.StatusAccepted:
+		return resp, nil
+		
+	case http.StatusUnauthorized:
 		resp.Body.Close()
 		
 		// Clear the JWT and try once more
@@ -165,14 +231,67 @@ func (c *Client) DoAuthenticatedRequest(method, endpoint string, body interface{
 		if err != nil {
 			return nil, fmt.Errorf("retry request failed: %w", err)
 		}
+		return resp, nil
+		
+	case http.StatusTooManyRequests:
+		resp.Body.Close()
+		
+		// Check for Retry-After header
+		retryAfter := RetryAfterDefault
+		if retryHeader := resp.Header.Get("Retry-After"); retryHeader != "" {
+			if seconds, err := strconv.Atoi(retryHeader); err == nil {
+				retryAfter = time.Duration(seconds) * time.Second
+			}
+		}
+		
+		// Wait and retry once
+		time.Sleep(retryAfter)
+		resp, err = c.HTTPClient.Do(req)
+		if err != nil {
+			return nil, fmt.Errorf("retry after rate limit failed: %w", err)
+		}
+		return resp, nil
+		
+	case http.StatusBadRequest:
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, fmt.Errorf("bad request (400): %s", string(bodyBytes))
+		
+	case http.StatusForbidden:
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, fmt.Errorf("forbidden (403): insufficient permissions - %s", string(bodyBytes))
+		
+	case http.StatusNotFound:
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, fmt.Errorf("not found (404): resource does not exist - %s", string(bodyBytes))
+		
+	case http.StatusConflict:
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, fmt.Errorf("conflict (409): resource cannot be modified - %s", string(bodyBytes))
+		
+	case http.StatusUnprocessableEntity:
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, fmt.Errorf("unprocessable entity (422): invalid input - %s", string(bodyBytes))
+		
+	default:
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
 	}
-
-	return resp, nil
 }
 
 // Get performs a GET request with authentication
 func (c *Client) Get(endpoint string) (*http.Response, error) {
 	return c.DoAuthenticatedRequest("GET", endpoint, nil)
+}
+
+// GetWithParams performs a GET request with authentication and query parameters
+func (c *Client) GetWithParams(endpoint string, params map[string]string) (*http.Response, error) {
+	return c.DoAuthenticatedRequestWithParams("GET", endpoint, nil, params)
 }
 
 // Post performs a POST request with authentication
@@ -230,16 +349,16 @@ func (c *Client) ListOrganizations() ([]Organization, error) {
 func (c *Client) ListOrganizationMembers(orgID string) ([]OrganizationMember, error) {
 	endpoint := fmt.Sprintf("/api/v1/org/%s/members", orgID)
 	
-	resp, err := c.Get(endpoint)
+	// Use maximum page size to minimize API requests
+	params := map[string]string{
+		"pageSize": strconv.Itoa(DefaultPageSize),
+	}
+	
+	resp, err := c.GetWithParams(endpoint, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get organization members: %w", err)
+		return nil, err // Error handling now done in makeRequestWithRetry
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
-	}
 
 	// Parse the wrapped response (users are in a "users" array)
 	var wrappedResp OrganizationMembersResponse
@@ -254,16 +373,16 @@ func (c *Client) ListOrganizationMembers(orgID string) ([]OrganizationMember, er
 func (c *Client) ListOrganizationTeams(orgID string) ([]Team, error) {
 	endpoint := fmt.Sprintf("/api/v1/org/%s/teams", orgID)
 	
-	resp, err := c.Get(endpoint)
+	// Use maximum page size to minimize API requests
+	params := map[string]string{
+		"pageSize": strconv.Itoa(DefaultPageSize),
+	}
+	
+	resp, err := c.GetWithParams(endpoint, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get organization teams: %w", err)
+		return nil, err // Error handling now done in makeRequestWithRetry
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
-	}
 
 	// Parse the response (teams are in a "teams" array)
 	var teamsResp OrganizationTeamsResponse
@@ -278,16 +397,16 @@ func (c *Client) ListOrganizationTeams(orgID string) ([]Team, error) {
 func (c *Client) ListOrganizationApplications(orgID string) ([]AppApplication, error) {
 	endpoint := fmt.Sprintf("/api/v2/org/%s/apps", orgID)
 	
-	resp, err := c.Get(endpoint)
+	// Use maximum page size to minimize API requests
+	params := map[string]string{
+		"pageSize": strconv.Itoa(DefaultPageSize),
+	}
+	
+	resp, err := c.GetWithParams(endpoint, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get organization applications: %w", err)
+		return nil, err // Error handling now done in makeRequestWithRetry
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
-	}
 
 	// Parse the response (applications are in an "applications" array)
 	var appsResp OrganizationApplicationsResponse
@@ -300,9 +419,41 @@ func (c *Client) ListOrganizationApplications(orgID string) ([]AppApplication, e
 
 // ListOrganizationScans retrieves all scans for the specified organization
 func (c *Client) ListOrganizationScans(orgID string) ([]ApplicationScanResult, error) {
+	// Use maximum page size by default to minimize API requests
+	opts := &PaginationOptions{
+		PageSize: DefaultPageSize,
+	}
+	return c.ListOrganizationScansWithOptions(orgID, opts)
+}
+
+// ListOrganizationScansWithOptions retrieves scans with pagination and sorting options
+func (c *Client) ListOrganizationScansWithOptions(orgID string, opts *PaginationOptions) ([]ApplicationScanResult, error) {
 	endpoint := fmt.Sprintf("/api/v1/scan/%s", orgID)
 	
-	resp, err := c.Get(endpoint)
+	// Build query parameters
+	params := make(map[string]string)
+	if opts != nil {
+		if opts.PageSize > 0 {
+			if opts.PageSize > MaxPageSize {
+				opts.PageSize = MaxPageSize
+			}
+			params["pageSize"] = strconv.Itoa(opts.PageSize)
+		}
+		if opts.PageToken != "" {
+			params["pageToken"] = opts.PageToken
+		}
+		if opts.Page != "" {
+			params["page"] = opts.Page
+		}
+		if opts.SortField != "" {
+			params["sortField"] = opts.SortField
+		}
+		if opts.SortDir != "" {
+			params["sortDir"] = opts.SortDir
+		}
+	}
+	
+	resp, err := c.GetWithParams(endpoint, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get organization scans: %w", err)
 	}

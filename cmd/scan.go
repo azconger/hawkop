@@ -38,7 +38,11 @@ name/ID and environment.`,
 		app, _ := cmd.Flags().GetString("app")
 		env, _ := cmd.Flags().GetString("env")
 		status, _ := cmd.Flags().GetString("status")
-		runScanList(format, limit, org, app, env, status)
+		sortBy, _ := cmd.Flags().GetString("sort-by")
+		sortDir, _ := cmd.Flags().GetString("sort-dir")
+		pageSize, _ := cmd.Flags().GetInt("page-size")
+		pageToken, _ := cmd.Flags().GetString("page-token")
+		runScanList(format, limit, org, app, env, status, sortBy, sortDir, pageSize, pageToken)
 	},
 }
 
@@ -87,6 +91,10 @@ func init() {
 	scanListCmd.Flags().StringP("app", "a", "", "Filter by application name or ID")
 	scanListCmd.Flags().StringP("env", "e", "", "Filter by environment")
 	scanListCmd.Flags().StringP("status", "s", "", "Filter by scan status (STARTED|COMPLETED|ERROR)")
+	scanListCmd.Flags().StringP("sort-by", "", "timestamp", "Sort by field (timestamp|application|env|status)")
+	scanListCmd.Flags().StringP("sort-dir", "", "desc", "Sort direction (asc|desc)")
+	scanListCmd.Flags().IntP("page-size", "", 0, "Page size for API requests (default 1000, max 1000)")
+	scanListCmd.Flags().StringP("page-token", "", "", "Page token for pagination")
 
 	// Add flags for scan get command
 	scanGetCmd.Flags().StringP("format", "f", "table", "Output format (table|json)")
@@ -98,7 +106,7 @@ func init() {
 	scanAlertsCmd.Flags().IntP("limit", "l", 0, "Limit number of results (0 = no limit)")
 }
 
-func runScanList(outputFormat string, limit int, orgID string, appFilter string, envFilter string, statusFilter string) {
+func runScanList(outputFormat string, limit int, orgID string, appFilter string, envFilter string, statusFilter string, sortBy string, sortDir string, pageSize int, pageToken string) {
 	// Load configuration
 	cfg, err := config.Load()
 	checkError(err)
@@ -121,8 +129,33 @@ func runScanList(outputFormat string, limit int, orgID string, appFilter string,
 	// Create API client
 	client := api.NewClient(cfg)
 
+	// Build pagination options - always use max page size to minimize API requests
+	paginationOpts := &api.PaginationOptions{
+		PageSize: 1000, // Always use maximum to minimize API calls
+	}
+	
+	// Override page size if explicitly set (but still cap at max)
+	if pageSize > 0 {
+		if pageSize > 1000 {
+			pageSize = 1000
+		}
+		paginationOpts.PageSize = pageSize
+	}
+	
+	if pageToken != "" {
+		paginationOpts.PageToken = pageToken
+	}
+	
+	// Only add sorting if explicitly different from defaults and not empty
+	if sortBy != "" && sortBy != "timestamp" {
+		paginationOpts.SortField = sortBy
+	}
+	if sortDir != "" && sortDir != "desc" {
+		paginationOpts.SortDir = sortDir
+	}
+
 	// Get organization scans
-	scanResults, err := client.ListOrganizationScans(orgID)
+	scanResults, err := client.ListOrganizationScansWithOptions(orgID, paginationOpts)
 	if err != nil {
 		fmt.Printf("❌ Failed to list scans: %v\n", err)
 		return

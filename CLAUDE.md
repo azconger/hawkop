@@ -93,11 +93,18 @@ HawkOp is now a fully functional CLI application with comprehensive StackHawk pl
 ### API Endpoints Integrated
 - `GET /api/v1/auth/login` - JWT authentication with X-ApiKey header
 - `GET /api/v1/user` - Get current user info and organizations
-- `GET /api/v1/org/{orgId}/members` - List organization members/users  
-- `GET /api/v1/org/{orgId}/teams` - List organization teams
-- `GET /api/v2/org/{orgId}/apps` - List organization applications
-- `GET /api/v1/scan/{orgId}` - List organization scans with metadata
+- `GET /api/v1/org/{orgId}/members` - List organization members/users (max pageSize=1000)
+- `GET /api/v1/org/{orgId}/teams` - List organization teams (max pageSize=1000)
+- `GET /api/v2/org/{orgId}/apps` - List organization applications (max pageSize=1000)
+- `GET /api/v1/scan/{orgId}` - List organization scans with metadata (max pageSize=1000)
 - `GET /api/v1/scan/{scanId}/alerts` - Get security alerts for specific scan
+
+### API Standards Compliance ✅
+- **Rate Limiting**: 360 requests/minute compliance with 167ms intervals
+- **Pagination**: Default pageSize=1000 (maximum) to minimize API requests
+- **Error Handling**: Comprehensive HTTP status code handling (400, 401, 403, 404, 409, 422, 429)
+- **Retry Logic**: Automatic JWT refresh on 401, rate limit retry on 429
+- **Query Parameters**: Proper URL encoding and parameter validation
 
 ### Future Enhancement Opportunities
 1. **Advanced Scan Features**
