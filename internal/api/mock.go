@@ -147,7 +147,7 @@ func handleMockAuth(w http.ResponseWriter, r *http.Request) {
 		Token:     "mock-jwt-token",
 		ExpiresAt: time.Now().Add(30 * time.Minute),
 	}
-	json.NewEncoder(w).Encode(auth)
+	_ = json.NewEncoder(w).Encode(auth)
 }
 
 func handleMockUser(w http.ResponseWriter, r *http.Request) {
@@ -169,7 +169,7 @@ func handleMockUser(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(user)
+	_ = json.NewEncoder(w).Encode(user)
 }
 
 func handleMockOrganizations(w http.ResponseWriter, r *http.Request) {
@@ -183,7 +183,7 @@ func handleMockOrganizations(w http.ResponseWriter, r *http.Request) {
 			Name: "Mock Organization 2",
 		},
 	}
-	json.NewEncoder(w).Encode(orgs)
+	_ = json.NewEncoder(w).Encode(orgs)
 }
 
 func handleMockMembers(w http.ResponseWriter, r *http.Request) {
@@ -211,7 +211,7 @@ func handleMockMembers(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(members)
+	_ = json.NewEncoder(w).Encode(members)
 }
 
 func handleMockTeams(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +233,7 @@ func handleMockTeams(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(teams)
+	_ = json.NewEncoder(w).Encode(teams)
 }
 
 func handleMockApps(w http.ResponseWriter, r *http.Request) {
@@ -247,7 +247,7 @@ func handleMockApps(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(apps)
+	_ = json.NewEncoder(w).Encode(apps)
 }
 
 func handleMockScans(w http.ResponseWriter, r *http.Request) {
@@ -274,5 +274,5 @@ func handleMockScans(w http.ResponseWriter, r *http.Request) {
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(scans)
+	_ = json.NewEncoder(w).Encode(scans)
 }

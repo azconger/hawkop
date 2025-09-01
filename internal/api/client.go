@@ -152,7 +152,7 @@ func (c *Client) DoAuthenticatedRequestWithParams(method, endpoint string, body 
 
 	// Build URL with query parameters
 	reqURL := c.BaseURL + endpoint
-	if params != nil && len(params) > 0 {
+	if len(params) > 0 {
 		u, err := url.Parse(reqURL)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse URL: %w", err)
@@ -506,12 +506,4 @@ func (c *Client) BuildStandardParams(overrides map[string]string) map[string]str
 	}
 
 	return params
-}
-
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }

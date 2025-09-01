@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
 	"hawkop/internal/config"
 )
 
@@ -77,7 +78,7 @@ func (suite *ClientTestSuite) handleMockAuth(w http.ResponseWriter, r *http.Requ
 		Token:     "new-jwt-token",
 		ExpiresAt: time.Now().Add(30 * time.Minute),
 	}
-	json.NewEncoder(w).Encode(auth)
+	_ = json.NewEncoder(w).Encode(auth)
 }
 
 func (suite *ClientTestSuite) handleMockUser(w http.ResponseWriter, r *http.Request) {
@@ -99,7 +100,7 @@ func (suite *ClientTestSuite) handleMockUser(w http.ResponseWriter, r *http.Requ
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(user)
+	_ = json.NewEncoder(w).Encode(user)
 }
 
 func (suite *ClientTestSuite) handleMockMembers(w http.ResponseWriter, r *http.Request) {
@@ -131,7 +132,7 @@ func (suite *ClientTestSuite) handleMockMembers(w http.ResponseWriter, r *http.R
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(members)
+	_ = json.NewEncoder(w).Encode(members)
 }
 
 func (suite *ClientTestSuite) handleMockTeams(w http.ResponseWriter, r *http.Request) {
@@ -157,7 +158,7 @@ func (suite *ClientTestSuite) handleMockTeams(w http.ResponseWriter, r *http.Req
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(teams)
+	_ = json.NewEncoder(w).Encode(teams)
 }
 
 func (suite *ClientTestSuite) handleMockApps(w http.ResponseWriter, r *http.Request) {
@@ -175,7 +176,7 @@ func (suite *ClientTestSuite) handleMockApps(w http.ResponseWriter, r *http.Requ
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(apps)
+	_ = json.NewEncoder(w).Encode(apps)
 }
 
 func (suite *ClientTestSuite) handleMockScans(w http.ResponseWriter, r *http.Request) {
@@ -204,7 +205,7 @@ func (suite *ClientTestSuite) handleMockScans(w http.ResponseWriter, r *http.Req
 			},
 		},
 	}
-	json.NewEncoder(w).Encode(scans)
+	_ = json.NewEncoder(w).Encode(scans)
 }
 
 // Test API client creation

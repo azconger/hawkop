@@ -6,11 +6,10 @@ import (
 	"os"
 	"testing"
 
-	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+
 	"hawkop/internal/api"
-	"hawkop/internal/config"
 )
 
 type ScanCommandTestSuite struct {
@@ -170,14 +169,6 @@ func (suite *ScanCommandTestSuite) TestScanAlertsFlags() {
 	limitFlag := cmd.Flags().Lookup("limit")
 	assert.NotNil(suite.T(), limitFlag)
 	assert.Equal(suite.T(), "0", limitFlag.DefValue)
-}
-
-// Helper function to test command execution with mock config
-func executeCommandWithMockConfig(cmd *cobra.Command, args []string, cfg *config.Config) error {
-	// This would require dependency injection to properly test
-	// For now, we test the command structure and flags
-	cmd.SetArgs(args)
-	return cmd.Execute()
 }
 
 func TestScanCommandTestSuite(t *testing.T) {

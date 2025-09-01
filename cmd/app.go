@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
 	"hawkop/internal/api"
 	"hawkop/internal/config"
 	"hawkop/internal/format"

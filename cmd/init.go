@@ -9,6 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
+
 	"hawkop/internal/config"
 )
 
