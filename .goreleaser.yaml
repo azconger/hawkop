@@ -73,6 +73,6 @@ brews:
     repository:
       owner: azconger
       name: homebrew-tap
-    folder: Formula
+    directory: Formula
     test: |
       system "#{bin}/hawkop version"
