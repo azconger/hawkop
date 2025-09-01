@@ -65,14 +65,14 @@ release:
   footer: |
     **Full Changelog**: https://github.com/azconger/hawkop/compare/{{ .PreviousTag }}...{{ .Tag }}
 
-brews:
-  - name: hawkop
-    homepage: https://github.com/azconger/hawkop
-    description: "StackHawk CLI companion tool"
-    license: MIT
-    repository:
-      owner: azconger
-      name: homebrew-tap
-    directory: Formula
-    test: |
-      system "#{bin}/hawkop version"
+# brews:
+#   - name: hawkop
+#     homepage: https://github.com/azconger/hawkop
+#     description: "StackHawk CLI companion tool"
+#     license: MIT
+#     repository:
+#       owner: azconger
+#       name: homebrew-tap
+#     directory: Formula
+#     test: |
+#       system "#{bin}/hawkop version"
