@@ -191,7 +191,7 @@ func outputTable(orgs []api.Organization) {
 	}
 
 	table := format.NewTable("ID", "NAME", "PLAN", "CREATED")
-	
+
 	for _, org := range orgs {
 		created := ""
 		if org.CreatedTimestamp != "" {
@@ -200,7 +200,7 @@ func outputTable(orgs []api.Organization) {
 				created = time.Unix(ts/1000, 0).Format("2006-01-02")
 			}
 		}
-		
+
 		plan := org.Plan
 		if plan == "" {
 			plan = "N/A"

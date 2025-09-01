@@ -47,9 +47,11 @@ The CLI follows GitHub's `gh` CLI design patterns and supports core StackHawk op
 - `go build -o hawkop` - Build with a specific output name
 
 ### Testing and Quality
-- `go test` - Run tests (though no test files exist currently)
-- `go vet` - Run Go's built-in static analyzer
-- `go fmt` - Format Go source code
+- `go test ./...` - Run all tests including API client and command tests
+- `go test ./internal/api/` - Run API client tests with mock server
+- `go test ./cmd/` - Run command structure and flag tests
+- `go vet ./...` - Run Go's built-in static analyzer
+- `go fmt ./...` - Format Go source code
 
 ### Module Management
 - `go mod tidy` - Clean up module dependencies
@@ -74,6 +76,7 @@ HawkOp is now a fully functional CLI application with comprehensive StackHawk pl
 ### Current Dependencies
 - `github.com/spf13/cobra` - CLI framework for command structure
 - `golang.org/x/term` - Terminal utilities for secure password input
+- `github.com/stretchr/testify` - Testing framework with assertions, mocks, and test suites
 - Standard library HTTP client for StackHawk API
 
 ### Implemented Features ✅
@@ -89,6 +92,9 @@ HawkOp is now a fully functional CLI application with comprehensive StackHawk pl
 10. ✅ **Real Security Data** - Live integration showing actual vulnerability findings
 11. ✅ **Extensible Architecture** - Clean patterns for adding new commands and reports
 12. ✅ **Production Quality** - Error handling, validation, user-friendly messaging
+13. ✅ **Testing Infrastructure** - Comprehensive test suites with testify framework
+14. ✅ **CI/CD Pipeline** - GitHub Actions for automated testing and releases
+15. ✅ **Release Management** - GoReleaser for multi-platform binary distribution
 
 ### API Endpoints Integrated
 - `GET /api/v1/auth/login` - JWT authentication with X-ApiKey header
@@ -144,6 +150,37 @@ The config file is stored at `~/.config/hawkop/config.json` with 600 permissions
   }
 }
 ```
+
+## Development Standards Checklist
+
+### Before Submitting Code
+- [ ] All tests pass: `go test ./...`
+- [ ] Code is properly formatted: `go fmt ./...`
+- [ ] Static analysis passes: `go vet ./...`
+- [ ] No lint errors (if using golangci-lint)
+- [ ] API rate limiting respected (167ms intervals)
+- [ ] Error handling implemented for all API calls
+- [ ] Proper JWT token refresh on 401 responses
+- [ ] Consistent flag patterns across commands
+- [ ] Table output formatted correctly
+- [ ] JSON output properly structured
+- [ ] Security: No secrets in code or logs
+
+### Testing Requirements
+- Unit tests for all API client methods
+- Command structure tests for all CLI commands
+- Flag validation tests
+- Mock server tests for API integration
+- Error case testing (401, 404, rate limits)
+- Input validation testing
+
+### Code Style Guidelines
+- Follow existing patterns in `cmd/` directory
+- Use consistent error messages with ❌ prefix
+- Implement both table and JSON output formats
+- Use pageSize=1000 for all API requests
+- Apply filters after pagination for latest data
+- Handle interface{} types for flexible API responses
 
 ## Reference Materials
 

@@ -16,11 +16,11 @@ import (
 const (
 	DefaultBaseURL = "https://api.stackhawk.com"
 	AuthEndpoint   = "/api/v1/auth/login"
-	
+
 	// Pagination constants - use max page size to minimize API requests
-	DefaultPageSize = 1000  // Use maximum to reduce API calls
+	DefaultPageSize = 1000 // Use maximum to reduce API calls
 	MaxPageSize     = 1000
-	
+
 	// Rate limiting constants
 	MaxRequestsPerMinute = 360
 	RetryAfterDefault    = 60 * time.Second
@@ -28,9 +28,9 @@ const (
 
 // Client represents the StackHawk API client
 type Client struct {
-	BaseURL    string
-	HTTPClient *http.Client
-	config     *config.Config
+	BaseURL     string
+	HTTPClient  *http.Client
+	config      *config.Config
 	lastRequest time.Time
 }
 
@@ -157,7 +157,7 @@ func (c *Client) DoAuthenticatedRequestWithParams(method, endpoint string, body 
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse URL: %w", err)
 		}
-		
+
 		q := u.Query()
 		for key, value := range params {
 			if value != "" {
@@ -215,10 +215,10 @@ func (c *Client) makeRequestWithRetry(req *http.Request) (*http.Response, error)
 	switch resp.StatusCode {
 	case http.StatusOK, http.StatusCreated, http.StatusAccepted:
 		return resp, nil
-		
+
 	case http.StatusUnauthorized:
 		resp.Body.Close()
-		
+
 		// Clear the JWT and try once more
 		c.config.ClearJWT()
 		if err := c.EnsureValidJWT(); err != nil {
@@ -232,10 +232,10 @@ func (c *Client) makeRequestWithRetry(req *http.Request) (*http.Response, error)
 			return nil, fmt.Errorf("retry request failed: %w", err)
 		}
 		return resp, nil
-		
+
 	case http.StatusTooManyRequests:
 		resp.Body.Close()
-		
+
 		// Check for Retry-After header
 		retryAfter := RetryAfterDefault
 		if retryHeader := resp.Header.Get("Retry-After"); retryHeader != "" {
@@ -243,7 +243,7 @@ func (c *Client) makeRequestWithRetry(req *http.Request) (*http.Response, error)
 				retryAfter = time.Duration(seconds) * time.Second
 			}
 		}
-		
+
 		// Wait and retry once
 		time.Sleep(retryAfter)
 		resp, err = c.HTTPClient.Do(req)
@@ -251,32 +251,32 @@ func (c *Client) makeRequestWithRetry(req *http.Request) (*http.Response, error)
 			return nil, fmt.Errorf("retry after rate limit failed: %w", err)
 		}
 		return resp, nil
-		
+
 	case http.StatusBadRequest:
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		return nil, fmt.Errorf("bad request (400): %s", string(bodyBytes))
-		
+
 	case http.StatusForbidden:
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		return nil, fmt.Errorf("forbidden (403): insufficient permissions - %s", string(bodyBytes))
-		
+
 	case http.StatusNotFound:
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		return nil, fmt.Errorf("not found (404): resource does not exist - %s", string(bodyBytes))
-		
+
 	case http.StatusConflict:
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		return nil, fmt.Errorf("conflict (409): resource cannot be modified - %s", string(bodyBytes))
-		
+
 	case http.StatusUnprocessableEntity:
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
 		return nil, fmt.Errorf("unprocessable entity (422): invalid input - %s", string(bodyBytes))
-		
+
 	default:
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
@@ -348,12 +348,10 @@ func (c *Client) ListOrganizations() ([]Organization, error) {
 // ListOrganizationMembers retrieves all users/members in the specified organization
 func (c *Client) ListOrganizationMembers(orgID string) ([]OrganizationMember, error) {
 	endpoint := fmt.Sprintf("/api/v1/org/%s/members", orgID)
-	
-	// Use maximum page size to minimize API requests
-	params := map[string]string{
-		"pageSize": strconv.Itoa(DefaultPageSize),
-	}
-	
+
+	// Use standard parameters with optimal defaults
+	params := c.BuildStandardParams(nil)
+
 	resp, err := c.GetWithParams(endpoint, params)
 	if err != nil {
 		return nil, err // Error handling now done in makeRequestWithRetry
@@ -372,12 +370,10 @@ func (c *Client) ListOrganizationMembers(orgID string) ([]OrganizationMember, er
 // ListOrganizationTeams retrieves all teams in the specified organization
 func (c *Client) ListOrganizationTeams(orgID string) ([]Team, error) {
 	endpoint := fmt.Sprintf("/api/v1/org/%s/teams", orgID)
-	
-	// Use maximum page size to minimize API requests
-	params := map[string]string{
-		"pageSize": strconv.Itoa(DefaultPageSize),
-	}
-	
+
+	// Use standard parameters with optimal defaults
+	params := c.BuildStandardParams(nil)
+
 	resp, err := c.GetWithParams(endpoint, params)
 	if err != nil {
 		return nil, err // Error handling now done in makeRequestWithRetry
@@ -396,12 +392,10 @@ func (c *Client) ListOrganizationTeams(orgID string) ([]Team, error) {
 // ListOrganizationApplications retrieves all applications in the specified organization
 func (c *Client) ListOrganizationApplications(orgID string) ([]AppApplication, error) {
 	endpoint := fmt.Sprintf("/api/v2/org/%s/apps", orgID)
-	
-	// Use maximum page size to minimize API requests
-	params := map[string]string{
-		"pageSize": strconv.Itoa(DefaultPageSize),
-	}
-	
+
+	// Use standard parameters with optimal defaults
+	params := c.BuildStandardParams(nil)
+
 	resp, err := c.GetWithParams(endpoint, params)
 	if err != nil {
 		return nil, err // Error handling now done in makeRequestWithRetry
@@ -419,50 +413,45 @@ func (c *Client) ListOrganizationApplications(orgID string) ([]AppApplication, e
 
 // ListOrganizationScans retrieves all scans for the specified organization
 func (c *Client) ListOrganizationScans(orgID string) ([]ApplicationScanResult, error) {
-	// Use maximum page size by default to minimize API requests
-	opts := &PaginationOptions{
-		PageSize: DefaultPageSize,
-	}
-	return c.ListOrganizationScansWithOptions(orgID, opts)
+	return c.ListOrganizationScansWithOptions(orgID, nil)
 }
 
 // ListOrganizationScansWithOptions retrieves scans with pagination and sorting options
 func (c *Client) ListOrganizationScansWithOptions(orgID string, opts *PaginationOptions) ([]ApplicationScanResult, error) {
 	endpoint := fmt.Sprintf("/api/v1/scan/%s", orgID)
-	
-	// Build query parameters
-	params := make(map[string]string)
+
+	// Start with standard parameters (includes optimal pageSize=1000)
+	overrides := make(map[string]string)
+
+	// Apply pagination options as overrides
 	if opts != nil {
 		if opts.PageSize > 0 {
 			if opts.PageSize > MaxPageSize {
 				opts.PageSize = MaxPageSize
 			}
-			params["pageSize"] = strconv.Itoa(opts.PageSize)
+			overrides["pageSize"] = strconv.Itoa(opts.PageSize)
 		}
 		if opts.PageToken != "" {
-			params["pageToken"] = opts.PageToken
+			overrides["pageToken"] = opts.PageToken
 		}
 		if opts.Page != "" {
-			params["page"] = opts.Page
+			overrides["page"] = opts.Page
 		}
 		if opts.SortField != "" {
-			params["sortField"] = opts.SortField
+			overrides["sortField"] = opts.SortField
 		}
 		if opts.SortDir != "" {
-			params["sortDir"] = opts.SortDir
+			overrides["sortDir"] = opts.SortDir
 		}
 	}
-	
+
+	params := c.BuildStandardParams(overrides)
+
 	resp, err := c.GetWithParams(endpoint, params)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get organization scans: %w", err)
+		return nil, err // Error handling now done in makeRequestWithRetry
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("API error: HTTP %d - %s", resp.StatusCode, string(bodyBytes))
-	}
 
 	// Parse the response
 	var scansResp OrganizationScansResponse
@@ -476,7 +465,7 @@ func (c *Client) ListOrganizationScansWithOptions(orgID string, opts *Pagination
 // GetScanAlerts retrieves alerts for a specific scan
 func (c *Client) GetScanAlerts(scanID string) ([]ScanAlert, error) {
 	endpoint := fmt.Sprintf("/api/v1/scan/%s/alerts", scanID)
-	
+
 	resp, err := c.Get(endpoint)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get scan alerts: %w", err)
@@ -501,6 +490,22 @@ func (c *Client) GetScanAlerts(scanID string) ([]ScanAlert, error) {
 	}
 
 	return alerts, nil
+}
+
+// BuildStandardParams creates optimized API parameters with smart defaults
+func (c *Client) BuildStandardParams(overrides map[string]string) map[string]string {
+	params := map[string]string{
+		"pageSize": strconv.Itoa(DefaultPageSize), // Always 1000 for efficiency
+	}
+
+	// Apply overrides for special cases
+	for key, value := range overrides {
+		if value != "" {
+			params[key] = value
+		}
+	}
+
+	return params
 }
 
 // min returns the minimum of two integers

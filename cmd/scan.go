@@ -38,11 +38,7 @@ name/ID and environment.`,
 		app, _ := cmd.Flags().GetString("app")
 		env, _ := cmd.Flags().GetString("env")
 		status, _ := cmd.Flags().GetString("status")
-		sortBy, _ := cmd.Flags().GetString("sort-by")
-		sortDir, _ := cmd.Flags().GetString("sort-dir")
-		pageSize, _ := cmd.Flags().GetInt("page-size")
-		pageToken, _ := cmd.Flags().GetString("page-token")
-		runScanList(format, limit, org, app, env, status, sortBy, sortDir, pageSize, pageToken)
+		runScanList(format, limit, org, app, env, status)
 	},
 }
 
@@ -91,10 +87,6 @@ func init() {
 	scanListCmd.Flags().StringP("app", "a", "", "Filter by application name or ID")
 	scanListCmd.Flags().StringP("env", "e", "", "Filter by environment")
 	scanListCmd.Flags().StringP("status", "s", "", "Filter by scan status (STARTED|COMPLETED|ERROR)")
-	scanListCmd.Flags().StringP("sort-by", "", "timestamp", "Sort by field (timestamp|application|env|status)")
-	scanListCmd.Flags().StringP("sort-dir", "", "desc", "Sort direction (asc|desc)")
-	scanListCmd.Flags().IntP("page-size", "", 0, "Page size for API requests (default 1000, max 1000)")
-	scanListCmd.Flags().StringP("page-token", "", "", "Page token for pagination")
 
 	// Add flags for scan get command
 	scanGetCmd.Flags().StringP("format", "f", "table", "Output format (table|json)")
@@ -106,7 +98,7 @@ func init() {
 	scanAlertsCmd.Flags().IntP("limit", "l", 0, "Limit number of results (0 = no limit)")
 }
 
-func runScanList(outputFormat string, limit int, orgID string, appFilter string, envFilter string, statusFilter string, sortBy string, sortDir string, pageSize int, pageToken string) {
+func runScanList(outputFormat string, limit int, orgID string, appFilter string, envFilter string, statusFilter string) {
 	// Load configuration
 	cfg, err := config.Load()
 	checkError(err)
@@ -129,46 +121,31 @@ func runScanList(outputFormat string, limit int, orgID string, appFilter string,
 	// Create API client
 	client := api.NewClient(cfg)
 
-	// Build pagination options - always use max page size to minimize API requests
-	paginationOpts := &api.PaginationOptions{
-		PageSize: 1000, // Always use maximum to minimize API calls
-	}
-	
-	// Override page size if explicitly set (but still cap at max)
-	if pageSize > 0 {
-		if pageSize > 1000 {
-			pageSize = 1000
-		}
-		paginationOpts.PageSize = pageSize
-	}
-	
-	if pageToken != "" {
-		paginationOpts.PageToken = pageToken
-	}
-	
-	// Only add sorting if explicitly different from defaults and not empty
-	if sortBy != "" && sortBy != "timestamp" {
-		paginationOpts.SortField = sortBy
-	}
-	if sortDir != "" && sortDir != "desc" {
-		paginationOpts.SortDir = sortDir
+	// Set default limit to 100 if not specified to show latest scans
+	if limit == 0 {
+		limit = 100
 	}
 
-	// Get organization scans
-	scanResults, err := client.ListOrganizationScansWithOptions(orgID, paginationOpts)
+	// Get organization scans (API returns sorted by timestamp desc by default)
+	scanResults, err := client.ListOrganizationScans(orgID)
 	if err != nil {
 		fmt.Printf("❌ Failed to list scans: %v\n", err)
 		return
 	}
 
-	// Apply filters
+	// Apply limit FIRST to get the latest N scans before filtering
+	if len(scanResults) > limit {
+		scanResults = scanResults[:limit]
+	}
+
+	// Apply filters to the latest scans
 	filteredResults := []api.ApplicationScanResult{}
 	for _, result := range scanResults {
 		// App filter
 		if appFilter != "" {
 			appFilterLower := strings.ToLower(appFilter)
 			if !strings.Contains(strings.ToLower(result.Scan.ApplicationName), appFilterLower) &&
-			   !strings.Contains(strings.ToLower(result.Scan.ApplicationID), appFilterLower) {
+				!strings.Contains(strings.ToLower(result.Scan.ApplicationID), appFilterLower) {
 				continue
 			}
 		}
@@ -184,11 +161,6 @@ func runScanList(outputFormat string, limit int, orgID string, appFilter string,
 		}
 
 		filteredResults = append(filteredResults, result)
-	}
-
-	// Apply limit if specified
-	if limit > 0 && len(filteredResults) > limit {
-		filteredResults = filteredResults[:limit]
 	}
 
 	// Output based on format
@@ -315,7 +287,7 @@ func outputScansTable(scanResults []api.ApplicationScanResult) {
 	}
 
 	table := format.NewTable("SCAN ID", "APPLICATION", "ENV", "STATUS", "DURATION", "ALERTS", "TIMESTAMP")
-	
+
 	for _, result := range scanResults {
 		// Format duration
 		duration := ""
@@ -331,7 +303,6 @@ func outputScansTable(scanResults []api.ApplicationScanResult) {
 				}
 			}
 		}
-
 
 		// Format alert count
 		alertCount := ""
@@ -377,7 +348,7 @@ func outputScanDetailsTable(scanResult api.ApplicationScanResult, view string) {
 		table.AddRow("Application", scanResult.Scan.ApplicationName)
 		table.AddRow("Environment", scanResult.Scan.Env)
 		table.AddRow("Status", scanResult.Scan.Status)
-		
+
 		if scanResult.ScanDuration != nil {
 			switch v := scanResult.ScanDuration.(type) {
 			case float64:
@@ -401,7 +372,7 @@ func outputScanDetailsTable(scanResult api.ApplicationScanResult, view string) {
 		if scanResult.PolicyName != "" {
 			table.AddRow("Policy", scanResult.PolicyName)
 		}
-		
+
 		// Format timestamp
 		if scanResult.Scan.Timestamp != "" {
 			if ts, err := strconv.ParseInt(scanResult.Scan.Timestamp, 10, 64); err == nil {
@@ -446,7 +417,7 @@ func outputAlertsTable(alerts []api.ScanAlert) {
 	}
 
 	table := format.NewTable("PLUGIN ID", "NAME", "SEVERITY", "URIS", "CWE")
-	
+
 	for _, alert := range alerts {
 		// Clean up values
 		name := alert.Name

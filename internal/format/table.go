@@ -39,12 +39,12 @@ func (t *TableWriter) Render() string {
 
 	// Calculate column widths
 	colWidths := make([]int, len(t.headers))
-	
+
 	// Start with header widths
 	for i, header := range t.headers {
 		colWidths[i] = len(header)
 	}
-	
+
 	// Check row widths
 	for _, row := range t.rows {
 		for i, cell := range row {

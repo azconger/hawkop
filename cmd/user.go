@@ -133,12 +133,12 @@ func outputUsersTable(members []api.OrganizationMember) {
 	}
 
 	table := format.NewTable("NAME", "EMAIL", "ROLE", "PROVIDER", "CREATED")
-	
+
 	for _, member := range members {
 		name := ""
 		email := ""
 		role := ""
-		
+
 		// Extract user info from External field
 		if member.External != nil {
 			name = member.External.FullName
@@ -146,7 +146,7 @@ func outputUsersTable(members []api.OrganizationMember) {
 				name = fmt.Sprintf("%s %s", member.External.FirstName, member.External.LastName)
 			}
 			email = member.External.Email
-			
+
 			// Extract role from the organizations array in External
 			for _, orgMembership := range member.External.Organizations {
 				role = orgMembership.Role

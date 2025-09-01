@@ -111,7 +111,7 @@ func outputTeamsTable(teams []api.Team) {
 	}
 
 	table := format.NewTable("ID", "NAME", "USERS", "APPS", "CREATED")
-	
+
 	for _, team := range teams {
 		// Count users and applications
 		userCount := fmt.Sprintf("%d", len(team.Users))

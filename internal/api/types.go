@@ -2,11 +2,11 @@ package api
 
 // PaginationOptions represents pagination and sorting parameters
 type PaginationOptions struct {
-	PageSize   int    `json:"pageSize,omitempty"`
-	PageToken  string `json:"pageToken,omitempty"`
-	Page       string `json:"page,omitempty"`
-	SortField  string `json:"sortField,omitempty"`
-	SortDir    string `json:"sortDir,omitempty"`
+	PageSize  int    `json:"pageSize,omitempty"`
+	PageToken string `json:"pageToken,omitempty"`
+	Page      string `json:"page,omitempty"`
+	SortField string `json:"sortField,omitempty"`
+	SortDir   string `json:"sortDir,omitempty"`
 }
 
 // PaginationInfo represents pagination metadata in responses
@@ -23,13 +23,13 @@ type PaginationInfo struct {
 
 // Organization represents a StackHawk organization
 type Organization struct {
-	ID                string              `json:"id"`
-	Name              string              `json:"name"`
-	Plan              string              `json:"plan,omitempty"`
-	CreatedTimestamp  string              `json:"createdTimestamp,omitempty"`
-	Features          []string            `json:"features,omitempty"`
-	Settings          *OrganizationSettings `json:"settings,omitempty"`
-	Subscription      *Subscription       `json:"subscription,omitempty"`
+	ID               string                `json:"id"`
+	Name             string                `json:"name"`
+	Plan             string                `json:"plan,omitempty"`
+	CreatedTimestamp string                `json:"createdTimestamp,omitempty"`
+	Features         []string              `json:"features,omitempty"`
+	Settings         *OrganizationSettings `json:"settings,omitempty"`
+	Subscription     *Subscription         `json:"subscription,omitempty"`
 }
 
 // OrganizationSettings represents organization configuration settings
@@ -45,13 +45,13 @@ type Subscription struct {
 
 // UserExternal represents external user info from providers
 type UserExternal struct {
-	ID              string                    `json:"id"`
-	Email           string                    `json:"email"`
-	FirstName       string                    `json:"firstName"`
-	LastName        string                    `json:"lastName"`
-	FullName        string                    `json:"fullName"`
-	AvatarUrl       string                    `json:"avatarUrl"`
-	Organizations   []OrganizationMembership  `json:"organizations"`
+	ID            string                   `json:"id"`
+	Email         string                   `json:"email"`
+	FirstName     string                   `json:"firstName"`
+	LastName      string                   `json:"lastName"`
+	FullName      string                   `json:"fullName"`
+	AvatarUrl     string                   `json:"avatarUrl"`
+	Organizations []OrganizationMembership `json:"organizations"`
 }
 
 // OrganizationMembership represents a user's membership in an organization
@@ -73,15 +73,15 @@ type UserResponse struct {
 
 // OrganizationMember represents a user member of an organization
 type OrganizationMember struct {
-	StackhawkId       string                     `json:"stackhawkId"`
-	Provider          *Provider                  `json:"provider,omitempty"`
-	External          *UserExternal              `json:"external,omitempty"`
-	CreatedTimestamp  string                     `json:"createdTimestamp,omitempty"`
-	Organization      *Organization              `json:"organization,omitempty"`
-	Role              string                     `json:"role"`
-	Features          []Feature                  `json:"features,omitempty"`
-	Metadata          []Metadata                 `json:"metadata,omitempty"`
-	Achievements      []Achievement              `json:"achievements,omitempty"`
+	StackhawkId      string        `json:"stackhawkId"`
+	Provider         *Provider     `json:"provider,omitempty"`
+	External         *UserExternal `json:"external,omitempty"`
+	CreatedTimestamp string        `json:"createdTimestamp,omitempty"`
+	Organization     *Organization `json:"organization,omitempty"`
+	Role             string        `json:"role"`
+	Features         []Feature     `json:"features,omitempty"`
+	Metadata         []Metadata    `json:"metadata,omitempty"`
+	Achievements     []Achievement `json:"achievements,omitempty"`
 }
 
 // Provider represents authentication provider information
@@ -118,12 +118,12 @@ type OrganizationMembersResponse struct {
 
 // Team represents a StackHawk team within an organization
 type Team struct {
-	ID             string            `json:"id"`
-	Name           string            `json:"name"`
-	OrganizationID string            `json:"organizationId,omitempty"`
-	Applications   []Application     `json:"applications,omitempty"`
-	Users          []OrganizationMember `json:"users,omitempty"`
-	CreatedTimestamp string          `json:"createdTimestamp,omitempty"`
+	ID               string               `json:"id"`
+	Name             string               `json:"name"`
+	OrganizationID   string               `json:"organizationId,omitempty"`
+	Applications     []Application        `json:"applications,omitempty"`
+	Users            []OrganizationMember `json:"users,omitempty"`
+	CreatedTimestamp string               `json:"createdTimestamp,omitempty"`
 }
 
 // Application represents a basic application reference in teams
@@ -141,27 +141,27 @@ type OrganizationTeamsResponse struct {
 
 // AppApplication represents a StackHawk application
 type AppApplication struct {
-	ApplicationID     string `json:"applicationId"`
-	Name              string `json:"name"`
-	Env               string `json:"env,omitempty"`
-	EnvID             string `json:"envId,omitempty"`
-	ApplicationStatus string `json:"applicationStatus,omitempty"`
-	OrganizationID    string `json:"organizationId,omitempty"`
-	ApplicationType   string `json:"applicationType,omitempty"`
+	ApplicationID     string      `json:"applicationId"`
+	Name              string      `json:"name"`
+	Env               string      `json:"env,omitempty"`
+	EnvID             string      `json:"envId,omitempty"`
+	ApplicationStatus string      `json:"applicationStatus,omitempty"`
+	OrganizationID    string      `json:"organizationId,omitempty"`
+	ApplicationType   string      `json:"applicationType,omitempty"`
 	CloudScanTarget   interface{} `json:"cloudScanTarget,omitempty"`
 }
 
 // OrganizationApplicationsResponse represents the response from the /api/v2/org/{orgId}/apps endpoint
 type OrganizationApplicationsResponse struct {
-	Applications    []AppApplication `json:"applications,omitempty"`
-	TotalCount      string           `json:"totalCount,omitempty"`
-	CurrentPage     interface{}      `json:"currentPage,omitempty"`
-	HasNext         bool             `json:"hasNext,omitempty"`
-	NextPage        interface{}      `json:"nextPage,omitempty"`
-	NextPageToken   string           `json:"nextPageToken,omitempty"`
-	HasPrev         bool             `json:"hasPrev,omitempty"`
-	PrevPage        interface{}      `json:"prevPage,omitempty"`
-	PrevPageToken   string           `json:"prevPageToken,omitempty"`
+	Applications  []AppApplication `json:"applications,omitempty"`
+	TotalCount    string           `json:"totalCount,omitempty"`
+	CurrentPage   interface{}      `json:"currentPage,omitempty"`
+	HasNext       bool             `json:"hasNext,omitempty"`
+	NextPage      interface{}      `json:"nextPage,omitempty"`
+	NextPageToken string           `json:"nextPageToken,omitempty"`
+	HasPrev       bool             `json:"hasPrev,omitempty"`
+	PrevPage      interface{}      `json:"prevPage,omitempty"`
+	PrevPageToken string           `json:"prevPageToken,omitempty"`
 }
 
 // Scan represents a StackHawk scan
@@ -233,12 +233,12 @@ type ScanAlertFinding struct {
 
 // ScanAlertFindingsResponse represents the response from the /api/v1/scan/{scanId}/alert/{pluginId} endpoint
 type ScanAlertFindingsResponse struct {
-	Alert                    ScanAlert           `json:"alert,omitempty"`
-	Category                 string              `json:"category,omitempty"`
-	ApplicationScanAlertUris []ScanAlertFinding  `json:"applicationScanAlertUris,omitempty"`
-	AppHost                  string              `json:"appHost,omitempty"`
-	TotalCount               string              `json:"totalCount,omitempty"`
-	NextPageToken            string              `json:"nextPageToken,omitempty"`
+	Alert                    ScanAlert          `json:"alert,omitempty"`
+	Category                 string             `json:"category,omitempty"`
+	ApplicationScanAlertUris []ScanAlertFinding `json:"applicationScanAlertUris,omitempty"`
+	AppHost                  string             `json:"appHost,omitempty"`
+	TotalCount               string             `json:"totalCount,omitempty"`
+	NextPageToken            string             `json:"nextPageToken,omitempty"`
 }
 
 // ScanMessage represents request/response data for a specific finding

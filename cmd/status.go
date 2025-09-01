@@ -49,8 +49,8 @@ func runStatus() {
 		fmt.Println("   Run 'hawkop init' to set up your API key")
 	} else {
 		fmt.Println("🔑 API Key: ✅ Configured")
-		fmt.Printf("   Key: %s...%s\n", 
-			cfg.APIKey[:min(8, len(cfg.APIKey))], 
+		fmt.Printf("   Key: %s...%s\n",
+			cfg.APIKey[:min(8, len(cfg.APIKey))],
 			strings.Repeat("*", max(0, len(cfg.APIKey)-8)))
 	}
 	fmt.Println()

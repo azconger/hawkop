@@ -63,7 +63,7 @@ func runInit() {
 	fmt.Println()
 	fmt.Println("✅ Configuration saved successfully!")
 	fmt.Printf("   Config file: %s\n", config.GetConfigFile())
-	
+
 	if cfg.APIKey != "" {
 		fmt.Println("   API key: configured")
 	}
@@ -79,8 +79,8 @@ func runInit() {
 
 func promptForAPIKey(currentKey string) (string, error) {
 	if currentKey != "" {
-		fmt.Printf("Current API key: %s...%s\n", 
-			currentKey[:min(8, len(currentKey))], 
+		fmt.Printf("Current API key: %s...%s\n",
+			currentKey[:min(8, len(currentKey))],
 			strings.Repeat("*", max(0, len(currentKey)-8)))
 		fmt.Print("Enter new API key (or press Enter to keep current): ")
 	} else {
@@ -92,16 +92,16 @@ func promptForAPIKey(currentKey string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to read API key: %w", err)
 	}
-	
+
 	fmt.Println() // Print newline after hidden input
-	
+
 	apiKey := strings.TrimSpace(string(byteKey))
-	
+
 	// If empty and we have a current key, keep the current key
 	if apiKey == "" && currentKey != "" {
 		return "", nil // Return empty to indicate no change
 	}
-	
+
 	if apiKey == "" {
 		return "", fmt.Errorf("API key is required")
 	}
@@ -111,7 +111,7 @@ func promptForAPIKey(currentKey string) (string, error) {
 
 func promptForOrgID(currentOrgID string) (string, error) {
 	reader := bufio.NewReader(os.Stdin)
-	
+
 	if currentOrgID != "" {
 		fmt.Printf("Current default org ID: %s\n", currentOrgID)
 		fmt.Print("Enter new org ID (or press Enter to keep current): ")
@@ -125,7 +125,7 @@ func promptForOrgID(currentOrgID string) (string, error) {
 	}
 
 	orgID := strings.TrimSpace(input)
-	
+
 	// If empty and we have a current org ID, keep the current org ID
 	if orgID == "" && currentOrgID != "" {
 		return "", nil // Return empty to indicate no change

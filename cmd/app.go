@@ -123,7 +123,7 @@ func outputApplicationsTable(applications []api.AppApplication) {
 	}
 
 	table := format.NewTable("ID", "NAME", "ENV", "STATUS", "TYPE")
-	
+
 	for _, app := range applications {
 		// Clean up values
 		name := app.Name

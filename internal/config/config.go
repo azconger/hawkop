@@ -44,7 +44,7 @@ func init() {
 	if err != nil {
 		panic(fmt.Sprintf("unable to get user home directory: %v", err))
 	}
-	
+
 	configDir = filepath.Join(homeDir, ".config", "hawkop")
 	configFile = filepath.Join(configDir, "config.json")
 }
