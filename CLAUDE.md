@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-HawkOp is a Go CLI companion utility for the StackHawk scanner and platform. It provides developers and security teams with streamlined access to StackHawk's dynamic application security testing (DAST) capabilities directly from the terminal.
+HawkOp is a professional-grade Go CLI companion utility for the StackHawk scanner and platform. It provides developers and security teams with streamlined access to StackHawk's dynamic application security testing (DAST) capabilities directly from the terminal.
+
+This project follows enterprise Go development standards and includes comprehensive testing, documentation, and CI/CD workflows.
 
 The CLI follows GitHub's `gh` CLI design patterns and supports core StackHawk operations including:
 - Authentication and API key management (`init`, `status`)
@@ -19,43 +21,56 @@ The CLI follows GitHub's `gh` CLI design patterns and supports core StackHawk op
 
 - `main.go` - The main application entry point
 - `go.mod` - Go module definition specifying Go 1.24
+- `LICENSE` - MIT license for open source compliance
+- `README.md` - Comprehensive project documentation with installation and usage
+- `CONTRIBUTING.md` - Development guidelines and contribution process
+- `.gitignore` - Professional Go project gitignore
+- `Makefile` - Build automation with proper ldflags and version handling
+- `.goreleaser.yaml` - Multi-platform release automation
 - `cmd/` - Cobra CLI command definitions
   - `root.go` - Root command and CLI setup
   - `init.go` - API key initialization command
   - `status.go` - Configuration status command
-  - `version.go` - Version information command
+  - `version.go` - Version information command (updated for new version package)
   - `org.go` - Organization management commands
   - `user.go` - User listing and management commands
   - `team.go` - Team listing and management commands
   - `app.go` - Application listing and management commands
   - `scan.go` - Scan listing and analysis commands
-- `internal/config/` - Configuration management
-  - `config.go` - Config file handling, JWT management
+- `internal/config/` - Configuration management with YAML support
+  - `config.go` - YAML config file handling, JWT management
+  - `config_test.go` - Comprehensive test suite with 35.1% coverage
 - `internal/api/` - StackHawk API client
   - `client.go` - HTTP client with automatic JWT refresh
+  - `client_test.go` - Complete test suite with mock server (34.4% coverage)
   - `types.go` - API response data structures
 - `internal/format/` - Output formatting utilities
   - `table.go` - Table formatting for CLI output
+  - `table_test.go` - Complete test suite with 100% coverage
+- `internal/version/` - Build-time version information
+  - `version.go` - Version, build time, and git commit handling
 - `examples/` - Example configuration files
 - `HAWKOPDOC.md` - Comprehensive CLI documentation and command specifications
 
 ## Common Development Commands
 
-### Building and Running
+### Professional Build System (Preferred)
+- `make build` - Build with proper version ldflags
+- `make test` - Run full test suite with coverage
+- `make lint` - Run formatter, vet, and linter
+- `make clean` - Clean build artifacts
+- `make install` - Install to GOPATH/bin
+- `make release-snapshot` - Test release build locally
+
+### Direct Go Commands (Alternative)
 - `go run main.go` - Compile and run the application directly
 - `go build` - Compile the application into an executable binary
-- `go build -o hawkop` - Build with a specific output name
-
-### Testing and Quality
 - `go test ./...` - Run all tests including API client and command tests
 - `go test ./internal/api/` - Run API client tests with mock server
 - `go test ./cmd/` - Run command structure and flag tests
 - `go vet ./...` - Run Go's built-in static analyzer
 - `go fmt ./...` - Format Go source code
-
-### Module Management
 - `go mod tidy` - Clean up module dependencies
-- `go mod download` - Download module dependencies
 
 ## Architecture Notes
 
@@ -77,12 +92,13 @@ HawkOp is now a fully functional CLI application with comprehensive StackHawk pl
 - `github.com/spf13/cobra` - CLI framework for command structure
 - `golang.org/x/term` - Terminal utilities for secure password input
 - `github.com/stretchr/testify` - Testing framework with assertions, mocks, and test suites
+- `gopkg.in/yaml.v3` - YAML parsing and marshaling for configuration
 - Standard library HTTP client for StackHawk API
 
 ### Implemented Features ✅
 1. ✅ **CLI Framework** - Complete Cobra-based CLI with hierarchical commands
 2. ✅ **Security & Auth** - Secure config storage, JWT management, API key protection
-3. ✅ **Configuration** - `~/.config/hawkop/config.json` with 600 permissions
+3. ✅ **Configuration** - `~/.config/hawkop/config.yaml` with 600 permissions
 4. ✅ **Core Commands** - `init`, `status`, `version`, `org`, `user`, `team`, `app`, `scan`
 5. ✅ **Resource Management** - List and manage orgs, users, teams, applications
 6. ✅ **Scan Analysis** - List scans, view details, analyze security alerts
@@ -95,6 +111,9 @@ HawkOp is now a fully functional CLI application with comprehensive StackHawk pl
 13. ✅ **Testing Infrastructure** - Comprehensive test suites with testify framework
 14. ✅ **CI/CD Pipeline** - GitHub Actions for automated testing and releases
 15. ✅ **Release Management** - GoReleaser for multi-platform binary distribution
+16. ✅ **Professional Standards** - MIT license, comprehensive docs, contribution guidelines
+17. ✅ **Build Automation** - Makefile with proper version injection and workflows
+18. ✅ **YAML Configuration** - Human-readable YAML format for configuration files
 
 ### API Endpoints Integrated
 - `GET /api/v1/auth/login` - JWT authentication with X-ApiKey header
@@ -139,25 +158,21 @@ HawkOp is now a fully functional CLI application with comprehensive StackHawk pl
    - Scan result comparison and diff analysis
 
 ### Configuration File Format
-The config file is stored at `~/.config/hawkop/config.json` with 600 permissions:
-```json
-{
-  "api_key": "your-api-key",
-  "org_id": "optional-default-org-id", 
-  "jwt": {
-    "token": "jwt-token",
-    "expires_at": "2024-12-25T15:30:45Z"
-  }
-}
+The config file is stored at `~/.config/hawkop/config.yaml` with 600 permissions:
+```yaml
+api_key: your-api-key
+org_id: optional-default-org-id
+jwt:
+  token: jwt-token
+  expires_at: 2024-12-25T15:30:45Z
 ```
 
 ## Development Standards Checklist
 
 ### Before Submitting Code
-- [ ] All tests pass: `go test ./...`
-- [ ] Code is properly formatted: `go fmt ./...`
-- [ ] Static analysis passes: `go vet ./...`
-- [ ] No lint errors (if using golangci-lint)
+- [ ] All checks pass: `make lint` (includes fmt, vet, golangci-lint)
+- [ ] All tests pass: `make test` (includes race detection and coverage)
+- [ ] Build succeeds: `make build` (with proper version injection)
 - [ ] API rate limiting respected (167ms intervals)
 - [ ] Error handling implemented for all API calls
 - [ ] Proper JWT token refresh on 401 responses
@@ -165,6 +180,7 @@ The config file is stored at `~/.config/hawkop/config.json` with 600 permissions
 - [ ] Table output formatted correctly
 - [ ] JSON output properly structured
 - [ ] Security: No secrets in code or logs
+- [ ] YAML configuration properly handled
 
 ### Testing Requirements
 - Unit tests for all API client methods
