@@ -1,3 +1,4 @@
+// Package api defines data structures for StackHawk API responses.
 package api
 
 // PaginationOptions represents pagination and sorting parameters

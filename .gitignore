@@ -1,4 +1,72 @@
-.idea
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
+
+# Go workspace file
+go.work
+
+# Built binaries
 hawkop
-coverage.html
+hawkop_*
+
+# Coverage reports
 coverage.out
+coverage.html
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# GoReleaser dist directory
+dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Local configuration overrides
+config.local.*
+
+# Development certificates
+*.pem
+*.key
+*.crt
+
+# Test fixtures (if any)
+testdata/
+
+# Backup files
+*.bak
+*.backup

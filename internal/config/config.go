@@ -1,11 +1,14 @@
+// Package config manages HawkOp CLI configuration including API keys,
+// organization settings, and JWT token management.
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // Config represents the hawkop configuration
@@ -46,7 +49,7 @@ func init() {
 	}
 
 	configDir = filepath.Join(homeDir, ".config", "hawkop")
-	configFile = filepath.Join(configDir, "config.json")
+	configFile = filepath.Join(configDir, "config.yaml")
 }
 
 // GetConfigDir returns the configuration directory path
@@ -78,9 +81,9 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Parse JSON
+	// Parse YAML
 	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
+	if err := yaml.Unmarshal(data, &config); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
 	}
 
@@ -94,8 +97,8 @@ func (c *Config) Save() error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	// Marshal to JSON with indentation for readability
-	data, err := json.MarshalIndent(c, "", "  ")
+	// Marshal to YAML for readability
+	data, err := yaml.Marshal(c)
 	if err != nil {
 		return fmt.Errorf("failed to marshal config: %w", err)
 	}

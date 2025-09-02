@@ -1,3 +1,5 @@
+// Package api provides a client for interacting with the StackHawk API.
+// It handles authentication, rate limiting, pagination, and JWT token refresh.
 package api
 
 import (

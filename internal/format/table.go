@@ -1,3 +1,5 @@
+// Package format provides utilities for formatting CLI output,
+// including table rendering and data presentation.
 package format
 
 import (

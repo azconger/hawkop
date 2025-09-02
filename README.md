@@ -9,20 +9,32 @@ A powerful command-line companion for the StackHawk dynamic application security
 - 👥 **User Management** - List organization members with role filtering
 - 🏗️ **Team Management** - View and manage teams within organizations
 - 📱 **Application Management** - List applications with status filtering
-- 📊 **Flexible Output** - Table or JSON format support
+- 🔍 **Scan Management** - List scans, view details, analyze security alerts
+- 📊 **Flexible Output** - Table or JSON format support for automation
 - 🔧 **Configuration** - Persistent settings and credential storage
+- 🚀 **Enterprise Ready** - Rate limiting, pagination, role-based access
 
 ## Installation
+
+### Download Release Binary
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/azconger/hawkop/releases).
 
 ### Build from Source
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/azconger/hawkop.git
 cd hawkop
-go build -o hawkop .
+make build
 ```
 
-### Usage
+### Install with Go
+
+```bash
+go install github.com/azconger/hawkop@latest
+```
+
+## Quick Start
 
 First, initialize HawkOp with your StackHawk API key:
 
@@ -106,6 +118,31 @@ hawkop app list --limit 5 --format json
 hawkop app list --org <org-id>
 ```
 
+### Scan Management
+
+```bash
+# List recent scans (default: 100 latest)
+hawkop scan list
+
+# Filter by application and environment
+hawkop scan list --app "My App" --env production
+
+# Filter by scan status
+hawkop scan list --status COMPLETED
+
+# Get detailed scan information
+hawkop scan get <scan-id>
+
+# View scan statistics
+hawkop scan get <scan-id> --view stats
+
+# List security alerts for a scan
+hawkop scan alerts <scan-id>
+
+# Filter alerts by severity
+hawkop scan alerts <scan-id> --severity High
+```
+
 ## Configuration
 
 HawkOp stores configuration in `~/.config/hawkop/config.json` with secure file permissions (600). The configuration includes:
@@ -167,9 +204,29 @@ HawkOp integrates with the StackHawk API using the following endpoints:
 go build -o hawkop .
 ```
 
+### Development Commands
+
+```bash
+# Build the binary
+make build
+
+# Run all tests with coverage
+make test
+
+# Format code and run all checks
+make check
+
+# Install development tools
+make dev
+
+# Create a new release
+make release
+```
+
 ### Dependencies
 
 - `github.com/spf13/cobra` - CLI framework
+- `github.com/stretchr/testify` - Testing framework
 - `golang.org/x/term` - Secure terminal input
 
 ## Security
@@ -177,18 +234,15 @@ go build -o hawkop .
 - API keys are stored securely with file permissions 600
 - JWT tokens are automatically refreshed as needed
 - No sensitive data is logged or exposed in output
+- Rate limiting respects StackHawk's 360 requests/minute limit
 
 ## Contributing
 
-This project follows standard Go development practices. Please ensure:
-
-1. Code is properly formatted (`go fmt`)
-2. All tests pass (`go test`)
-3. Code passes static analysis (`go vet`)
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ## License
 
-[Add your license information here]
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Support
 

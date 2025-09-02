@@ -19,9 +19,9 @@ builds:
     binary: hawkop
     ldflags:
       - -s -w
-      - -X main.Version={{.Version}}
-      - -X main.BuildTime={{.Date}}
-      - -X main.GitCommit={{.Commit}}
+      - -X hawkop/internal/version.Version={{.Version}}
+      - -X hawkop/internal/version.BuildTime={{.Date}}
+      - -X hawkop/internal/version.GitCommit={{.Commit}}
 
 archives:
   - format: tar.gz

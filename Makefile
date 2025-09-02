@@ -22,7 +22,7 @@ BUILD_TIME := $(shell date -u '+%Y-%m-%d_%H:%M:%S')
 GIT_COMMIT := $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
 
 # Build flags
-LDFLAGS=-ldflags "-s -w -X main.Version=$(VERSION) -X main.BuildTime=$(BUILD_TIME) -X main.GitCommit=$(GIT_COMMIT)"
+LDFLAGS=-ldflags "-s -w -X hawkop/internal/version.Version=$(VERSION) -X hawkop/internal/version.BuildTime=$(BUILD_TIME) -X hawkop/internal/version.GitCommit=$(GIT_COMMIT)"
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
